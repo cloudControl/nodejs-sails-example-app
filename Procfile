@@ -1,1 +1,1 @@
-web:  sails lift
+web:  export NODE_ENV=production; sails lift
