@@ -58,8 +58,7 @@ $(function () {
             });
         },
         deleteTaskItem: function () {
-            var id = $(this).closest('li').data('id');
-            socket.delete('/tasks/' + id, function (response) {
+            socket.delete('/tasks/' + App.getCurrentId(), function (response) {
                 App.render();
             });
         },
@@ -83,30 +82,24 @@ $(function () {
             this.$footer.html(this.footerTemplate(footer));
         },
         destroyCompleted: function () {
-            var todoList = $('#todo-list');
-            todoList.find('li').each(function (index, element) {
+            App.todoList().find('li').each(function (index, element) {
                 var selectBox = $(element).find(':checkbox');
                 if (selectBox.is(':checked')) {
-                    var id = $(element).data('id');
-                    socket.delete('/tasks/' + id, function (response) {
+                    socket.delete('/tasks/' + App.getId(element), function (response) {
                         App.render();
                     });
                 }
             });
         },
         toggle: function () {
-            var id = $(this).closest('li').data('id');
-            socket.put('/tasks/' + id, {completed: !!this.checked}, function (response) {
+            socket.put('/tasks/' + App.getCurrentId(), {completed: !!this.checked}, function (response) {
                 App.render();
             });
         },
         toggleAll: function () {
             var isChecked = $(this).prop('checked');
-            var todoList = $('#todo-list');
-
-            todoList.find('li').each(function (index, element) {
-                var id = $(element).data('id');
-                socket.put('/tasks/' + id, {completed: isChecked}, function (response) {
+            App.todoList().find('li').each(function (index, element) {
+                socket.put('/tasks/' + App.getId(element), {completed: isChecked}, function (response) {
                     App.render();
                 });
             });
@@ -123,11 +116,20 @@ $(function () {
         },
         update: function () {
             var val = $.trim($(this).removeClass('editing').val());
-            var id = $(this).closest('li').data('id');
-            socket.put('/tasks/' + id, {title: val}, function (response) {
+            socket.put('/tasks/' + App.getCurrentId(), {title: val}, function (response) {
                 App.render();
             });
+        },
+        todoList: function() {
+            return $('#todo-list');
+        },
+        getCurrentId: function() {
+            return $(this).closest('li').data('id');
+        },
+        getId: function(element) {
+            return $(element).data('id');
         }
+
     };
     App.init();
 });
