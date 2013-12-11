@@ -38,6 +38,9 @@ module.exports.adapters = {
     host: process.env.MYSQLS_HOSTNAME,
     user: process.env.MYSQLS_USERNAME,
     password: process.env.MYSQLS_PASSWORD,
-    database: process.env.MYSQLS_DATABASE
+    database: process.env.MYSQLS_DATABASE,
+    pool: true,
+    connectionLimit: 2,
+    waitForConnections: true
   }
 };
