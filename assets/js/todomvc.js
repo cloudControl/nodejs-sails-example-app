@@ -58,7 +58,8 @@ $(function () {
             });
         },
         deleteTaskItem: function () {
-            socket.delete('/tasks/' + App.getCurrentId(), function (response) {
+            var id = $(this).closest('li').data('id');
+            socket.delete('/tasks/' + id, function (response) {
                 App.render();
             });
         },
@@ -84,22 +85,25 @@ $(function () {
         destroyCompleted: function () {
             App.todoList().find('li').each(function (index, element) {
                 var selectBox = $(element).find(':checkbox');
+                var id = $(element).data('id');
                 if (selectBox.is(':checked')) {
-                    socket.delete('/tasks/' + App.getId(element), function (response) {
+                    socket.delete('/tasks/' + id, function (response) {
                         App.render();
                     });
                 }
             });
         },
         toggle: function () {
-            socket.put('/tasks/' + App.getCurrentId(), {completed: !!this.checked}, function (response) {
+            var id = $(this).closest('li').data('id');
+            socket.put('/tasks/' + id, {completed: !!this.checked}, function (response) {
                 App.render();
             });
         },
         toggleAll: function () {
             var isChecked = $(this).prop('checked');
             App.todoList().find('li').each(function (index, element) {
-                socket.put('/tasks/' + App.getId(element), {completed: isChecked}, function (response) {
+                var id = $(element).data('id');
+                socket.put('/tasks/' + id, {completed: isChecked}, function (response) {
                     App.render();
                 });
             });
@@ -116,7 +120,8 @@ $(function () {
         },
         update: function () {
             var val = $.trim($(this).removeClass('editing').val());
-            socket.put('/tasks/' + App.getCurrentId(), {title: val}, function (response) {
+            var id = $(this).closest('li').data('id');
+            socket.put('/tasks/' + id, {title: val}, function (response) {
                 App.render();
             });
         },
