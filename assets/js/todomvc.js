@@ -1,12 +1,18 @@
 $(function () {
     'use strict';
 
+    var Utils = {
+        pluralize: function (count, word) {
+            return count === 1 ? word : word + 's';
+        }
+    };
+
     var App = {
         init: function () {
             this.ENTER_KEY = 13;
             this.cacheElements();
             this.bindEvents();
-            this.render();
+            this.refreshUI();
         },
         cacheElements: function () {
             this.todoTemplate = Handlebars.compile($('#todo-template').html());
@@ -18,8 +24,6 @@ $(function () {
             this.$newTodo = this.$header.find('#new-todo');
             this.$toggleAll = this.$main.find('#toggle-all');
             this.$todoList = this.$main.find('#todo-list');
-            this.$count = this.$footer.find('#todo-count');
-            this.$clearBtn = this.$footer.find('#clear-completed');
         },
         bindEvents: function () {
             this.$newTodo.on('keyup', this.createTaskItem);
@@ -29,7 +33,7 @@ $(function () {
             list.on('change', '.toggle', this.toggle);
             list.on('dblclick', 'label', this.edit);
             list.on('keypress', '.edit', this.blurOnEnter);
-            list.on('blur', '.edit', this.update);
+            list.on('blur', '.edit', this.updateTask);
             this.$toggleAll.on('change', this.toggleAll);
         },
         displayTodos: function () {
@@ -43,7 +47,7 @@ $(function () {
                 }
             });
         },
-        render: function () {
+        refreshUI: function () {
             this.displayTodos();
         },
         createTaskItem: function (e) {
@@ -53,15 +57,14 @@ $(function () {
                 return
             }
             input_field.val('');
-            socket.post('/tasks', {title: new_todo_task, completed: false}, function (response) {
-                App.render();
-            });
+            socket.post('/tasks', {title: new_todo_task, completed: false}, App.refreshOnSuccess);
+        },
+        refreshOnSuccess: function (response) {
+            App.refreshUI();
         },
         deleteTaskItem: function () {
-            var id = $(this).closest('li').data('id');
-            socket.delete('/tasks/' + id, function (response) {
-                App.render();
-            });
+            var id = App.currentTaskId(this);
+            socket.delete('/tasks/' + id, App.refreshOnSuccess);
         },
         uncompletedTodoCount: function (storedTodos) {
             var count = 0;
@@ -75,7 +78,7 @@ $(function () {
         renderFooter: function (todoCount, uncompletedTodoCount) {
             var footer = {
                 activeTodoCount: uncompletedTodoCount,
-                activeTodoWord: "todo",//Utils.pluralize(uncompletedTodoCount, 'item'),
+                activeTodoWord: Utils.pluralize(uncompletedTodoCount, 'item'),
                 completedTodos: todoCount - uncompletedTodoCount
             };
 
@@ -83,56 +86,50 @@ $(function () {
             this.$footer.html(this.footerTemplate(footer));
         },
         destroyCompleted: function () {
-            App.todoList().find('li').each(function (index, element) {
-                var selectBox = $(element).find(':checkbox');
-                var id = $(element).data('id');
-                if (selectBox.is(':checked')) {
-                    socket.delete('/tasks/' + id, function (response) {
-                        App.render();
-                    });
-                }
+            var ids = App.selectTaskIds(function (element) {
+                var selectBox = element.find(':checkbox');
+                return selectBox.is(':checked')
             });
+            socket.delete('/tasks/completed', {ids: ids}, App.refreshOnSuccess);
         },
         toggle: function () {
-            var id = $(this).closest('li').data('id');
-            socket.put('/tasks/' + id, {completed: !!this.checked}, function (response) {
-                App.render();
-            });
+            var id = App.currentTaskId(this);
+            socket.put('/tasks/' + id, {completed: !!this.checked}, App.refreshOnSuccess);
         },
         toggleAll: function () {
             var isChecked = $(this).prop('checked');
-            App.todoList().find('li').each(function (index, element) {
-                var id = $(element).data('id');
-                socket.put('/tasks/' + id, {completed: isChecked}, function (response) {
-                    App.render();
-                });
+            var ids = App.selectTaskIds(function () {
+                return true;
             });
+            socket.post('/tasks/completed', {completed: isChecked, ids: ids}, App.refreshOnSuccess);
         },
         edit: function () {
             var $input = $(this).closest('li').addClass('editing').find('.edit');
             var val = $input.val();
             $input.val(val).focus();
         },
-       blurOnEnter: function (e) {
+        blurOnEnter: function (e) {
             if (e.which === App.ENTER_KEY) {
-                    e.target.blur();
+                e.target.blur();
             }
         },
-        update: function () {
+        updateTask: function () {
             var val = $.trim($(this).removeClass('editing').val());
-            var id = $(this).closest('li').data('id');
-            socket.put('/tasks/' + id, {title: val}, function (response) {
-                App.render();
+            var id = App.currentTaskId(this);
+            socket.put('/tasks/' + id, {title: val}, App.refreshOnSuccess);
+        },
+        currentTaskId: function (element) {
+            return $(element).closest('li').data('id');
+        },
+        selectTaskIds: function (selector) {
+            var ids = [];
+            $('#todo-list').find('li').each(function (index, element) {
+                var taskElement = $(element);
+                if (selector(taskElement)) {
+                    ids.push(taskElement.data('id'));
+                }
             });
-        },
-        todoList: function() {
-            return $('#todo-list');
-        },
-        getCurrentId: function() {
-            return $(this).closest('li').data('id');
-        },
-        getId: function(element) {
-            return $(element).data('id');
+            return ids;
         }
 
     };

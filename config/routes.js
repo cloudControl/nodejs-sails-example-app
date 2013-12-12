@@ -34,6 +34,16 @@ module.exports.routes = {
   // (This would also work if you had a file at: `/views/home.ejs`)
   '/': {
     view: 'home/index'
+  },
+
+  'post /tasks/completed': {
+    controller    : 'tasks',
+    action        : 'completed'
+  },
+
+  'delete /tasks/completed': {
+    controller    : 'tasks',
+    action        : 'delete_completed'
   }
 
   /*
