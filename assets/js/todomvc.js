@@ -8,6 +8,7 @@ $(function () {
     };
 
     var App = {
+
         init: function () {
             this.ENTER_KEY = 13;
             this.cacheElements();
@@ -35,6 +36,8 @@ $(function () {
             list.on('keypress', '.edit', this.blurOnEnter);
             list.on('blur', '.edit', this.updateTask);
             this.$toggleAll.on('change', this.toggleAll);
+            socket.on('refreshUI', this.refreshOnSuccess);
+            socket.on('reconnect', this.reload);
         },
         displayTodos: function () {
             var self = this;
@@ -49,6 +52,9 @@ $(function () {
         },
         refreshUI: function () {
             this.displayTodos();
+        },
+        reload: function () {
+            location.reload();
         },
         createTaskItem: function (e) {
             var input_field = $(this);
@@ -104,6 +110,7 @@ $(function () {
             socket.post('/tasks/completed', {completed: isChecked, ids: ids}, App.refreshOnSuccess);
         },
         edit: function () {
+            socket.removeAllListeners('refreshUI');
             var $input = $(this).closest('li').addClass('editing').find('.edit');
             var val = $input.val();
             $input.val(val).focus();
@@ -117,6 +124,7 @@ $(function () {
             var val = $.trim($(this).removeClass('editing').val());
             var id = App.currentTaskId(this);
             socket.put('/tasks/' + id, {title: val}, App.refreshOnSuccess);
+            socket.on('refreshUI', App.refreshOnSuccess);
         },
         currentTaskId: function (element) {
             return $(element).closest('li').data('id');
